@@ -123,19 +123,35 @@ static void destroy_table(const SymbolLookupTable *restrict self) {
 	destroy_nids(&self->nids);
 }
 
+void init_resolver(Resolver *restrict self) {
+	*self = (Resolver) {
+		.tables = NULL,
+		.allocated_tables = 0,
+		.num_tables = 0
+	};
+}
+
 Resolver create_resolver(void) {
-	Resolver res = {NULL, 0, 0};
+	Resolver res;
+	init_resolver(&res);
 	return res;
 }
 
+void move_resolver(Resolver *restrict self, Resolver *restrict rhs) {
+	*self = *rhs;
+	*rhs = (Resolver) {
+		.tables = NULL,
+		.allocated_tables = 0,
+		.num_tables = 0
+	};
+}
+
 void destroy_resolver(const Resolver *restrict self) {
-	for (size_t i = 0; i < self->allocated_tables; i++) {
+	for (size_t i = 0; i < self->num_tables; i++) {
 		destroy_table(self->tables + i);
 	}
 	free(self->tables);
 }
-
-extern Nid make_nid(const char *restrict sym, const size_t length);
 
 static int is_exported(const Elf64_Sym *restrict sym) {
 	return (sym->st_info & EXPORT_MASK) && sym->st_shndx != 0;

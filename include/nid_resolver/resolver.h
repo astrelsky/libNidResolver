@@ -13,18 +13,31 @@ typedef struct {
 } Resolver;
 
 /**
- * @brief Create a resolver object
+ * @brief Create and initializes resolver object
  *
  * @return Resolver
  */
 Resolver create_resolver(void);
 
 /**
+ * @brief Initializes a resolver object
+ */
+void init_resolver(Resolver *restrict self);
+
+/**
  * @brief Destroy the resolver object
  *
  * @param self the resolver object
  */
-void destroy_resolver(const Resolver *restrict self);
+void destroy_resolver(Resolver *restrict self);
+
+/**
+ * @brief Moves the resolver object
+ *
+ * @param self the resolver object
+ * @param rhs the resolver object to be moved
+ */
+void move_resolver(Resolver *restrict self, Resolver *restrict rhs);
 
 /**
  * @brief Reserve memory for a specified number of libraries
@@ -77,7 +90,8 @@ uintptr_t lookup_symbol(const Resolver *restrict self, const char *restrict sym,
 class ManagedResolver : public Resolver {
 
 	public:
-		ManagedResolver() noexcept : Resolver(create_resolver()) {
+		ManagedResolver() noexcept {
+			init_resolver(this);
 		}
 		ManagedResolver(const ManagedResolver&) = delete;
 		ManagedResolver operator=(const ManagedResolver&) = delete;
@@ -85,8 +99,7 @@ class ManagedResolver : public Resolver {
 			__builtin_memset(&rhs, 0, sizeof(rhs));
 		}
 		ManagedResolver &operator=(ManagedResolver &&rhs) noexcept {
-			Resolver::operator=((Resolver&&)rhs);
-			__builtin_memset(&rhs, 0, sizeof(rhs));
+			move_resolver(this, &rhs);
 			return *this;
 		}
 		~ManagedResolver() noexcept {
