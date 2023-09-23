@@ -58,7 +58,7 @@ int reserve_library_memory(Resolver *restrict self, size_t num_libraries);
  * @param strtab the library string table
  * @return 0 on success, non-zero on error
  */
-int add_library(Resolver *restrict self, const uintptr_t imagebase, const Elf64_Sym *restrict symtab, const size_t symtab_length, const char *restrict strtab);
+int add_library(Resolver *restrict self, uintptr_t imagebase, const Elf64_Sym *restrict symtab, size_t symtab_length, const char *restrict strtab);
 
 /**
  * @brief Add a library to the resolver
@@ -68,7 +68,7 @@ int add_library(Resolver *restrict self, const uintptr_t imagebase, const Elf64_
  * @param app_meta the kernel address of the metadata for the library
  * @return 0 on success, non-zero on error
  */
-int add_library_metadata(Resolver *restrict self, const uintptr_t imagebase, const uintptr_t app_meta);
+int add_library_metadata(Resolver *restrict self, uintptr_t imagebase, uintptr_t app_meta);
 
 /**
  * @brief Lookup a symbol
@@ -78,7 +78,7 @@ int add_library_metadata(Resolver *restrict self, const uintptr_t imagebase, con
  * @param length the length of the symbol
  * @return the symbol virtual address if found otherwise 0
  */
-uintptr_t lookup_symbol(const Resolver *restrict self, const char *restrict sym, const size_t length);
+uintptr_t lookup_symbol(const Resolver *restrict self, const char *restrict sym, size_t length);
 
 
 #ifdef __cplusplus
