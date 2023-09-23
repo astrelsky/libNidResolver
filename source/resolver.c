@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -51,7 +50,7 @@ typedef struct {
 	SymbolLookupTable *restrict tables;
 	size_t allocated_tables;
 	size_t num_tables;
-} Resolver;
+} resolver_t;
 
 static int_fast64_t compareNid(const Nid *restrict lhs, const Nid *restrict rhs) {
 	const int_fast64_t i = lhs->data.low - rhs->data.low;
@@ -123,30 +122,24 @@ static void destroy_table(const SymbolLookupTable *restrict self) {
 	destroy_nids(&self->nids);
 }
 
-void init_resolver(Resolver *restrict self) {
-	*self = (Resolver) {
+void resolver_init(resolver_t *restrict self) {
+	*self = (resolver_t) {
 		.tables = NULL,
 		.allocated_tables = 0,
 		.num_tables = 0
 	};
 }
 
-Resolver create_resolver(void) {
-	Resolver res;
-	init_resolver(&res);
-	return res;
-}
-
-void move_resolver(Resolver *restrict self, Resolver *restrict rhs) {
+void resolver_move(resolver_t *restrict self, resolver_t *restrict rhs) {
 	*self = *rhs;
-	*rhs = (Resolver) {
+	*rhs = (resolver_t) {
 		.tables = NULL,
 		.allocated_tables = 0,
 		.num_tables = 0
 	};
 }
 
-void destroy_resolver(const Resolver *restrict self) {
+void resolver_finalize(const resolver_t *restrict self) {
 	for (size_t i = 0; i < self->num_tables; i++) {
 		destroy_table(self->tables + i);
 	}
@@ -157,7 +150,7 @@ static int is_exported(const Elf64_Sym *restrict sym) {
 	return (sym->st_info & EXPORT_MASK) && sym->st_shndx != 0;
 }
 
-uintptr_t lookup_symbol(const Resolver *restrict self, const char *restrict sym, const size_t length) {
+uintptr_t resolver_lookup_symbol(const resolver_t *restrict self, const char *restrict sym, const size_t length) {
 	const Nid nid = make_nid(sym, length);
 	for (size_t i = 0; i < self->num_tables; i++) {
 		const NidKeyValue *entry = get_nid_entry(&self->tables[i].nids, &nid);
@@ -171,7 +164,7 @@ uintptr_t lookup_symbol(const Resolver *restrict self, const char *restrict sym,
 	return 0;
 }
 
-int reserve_library_memory(Resolver *restrict self, size_t num_libraries) {
+int resolver_reserve_library_memory(resolver_t *restrict self, size_t num_libraries) {
 	if (num_libraries <= self->allocated_tables) {
 		return 0;
 	}
@@ -201,9 +194,9 @@ static void fill_lookup_table(SymbolLookupTable *restrict tbl) {
 	}
 }
 
-int add_library(Resolver *restrict self, const uintptr_t imagebase, const Elf64_Sym *restrict symtab, const size_t symtab_length, const char *restrict strtab) {
+int resolver_add_library(resolver_t *restrict self, const uintptr_t imagebase, const Elf64_Sym *restrict symtab, const size_t symtab_length, const char *restrict strtab) {
 	if (self->num_tables == self->allocated_tables) {
-		if (reserve_library_memory(self, self->allocated_tables + 1)) {
+		if (resolver_reserve_library_memory(self, self->allocated_tables + 1)) {
 			return -1;
 		}
 	}
@@ -226,13 +219,13 @@ int add_library(Resolver *restrict self, const uintptr_t imagebase, const Elf64_
 	return 0;
 }
 
-int add_library_metadata(Resolver *restrict self, const uintptr_t imagebase, const uintptr_t app_meta) {
+int resolver_add_library_metadata(resolver_t *restrict self, const uintptr_t imagebase, const uintptr_t app_meta) {
 	if ((intptr_t)app_meta >= 0) {
 		return -1;
 	}
 
 	if (self->num_tables == self->allocated_tables) {
-		if (reserve_library_memory(self, self->allocated_tables + 1)) {
+		if (resolver_reserve_library_memory(self, self->allocated_tables + 1)) {
 			return -1;
 		}
 	}
